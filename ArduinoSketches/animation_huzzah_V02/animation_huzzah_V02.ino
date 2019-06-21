@@ -36,7 +36,7 @@
 
 // Global values for animation
 int currentDay = 0;
-int value = 0;
+int value = 255;
 bool isOn = false;
 long tDay = 0; // timer for the day animations
 
@@ -69,7 +69,7 @@ void loop()
 
   short intensity = GetIntensityFromPoti();
 
-  UpdateLEDs(intensity, HUE_BLUE);
+  UpdateLEDs(intensity, HUE_RED);
   
   if (tDay >= DURATION_DAY)
   {
@@ -104,7 +104,7 @@ void UpdateLEDs (short intensity, int hue)
 {
   int maxValue = map(intensity, INTENSITY_MIN, INTENSITY_MAX, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
   unsigned short fade = map(intensity, INTENSITY_MIN, INTENSITY_MAX, MIN_FADE, MAX_FADE);
-  int blinkChance = intensity;
+  int blinkChance = 110 - intensity;
 
   // fade, if glowing
   if (!isOn && value > 0)
@@ -113,14 +113,14 @@ void UpdateLEDs (short intensity, int hue)
   }
 
   // turn on with random chance
-  if (!isOn && random(0, blinkChance) == 0)
+  if (!isOn && random(0, 10) == 0)
   {
     isOn = true;
     value = maxValue;
   }
 
   // turn off with random chance
-  if (isOn && random(0, blinkChance) == 0)
+  if (isOn && random(0, 5) == 0)
   {
     isOn = false;
   }
@@ -129,6 +129,10 @@ void UpdateLEDs (short intensity, int hue)
   {
     strip.setPixelColor(i, strip.ColorHSV(hue, 255, value));
   }
+
+  strip.show();
+
+  Serial.println(String("value: ") + value);
 }
 
 int GetIntensityFromDifference (float difference)
