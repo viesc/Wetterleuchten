@@ -5,7 +5,7 @@
 #define CLOCKPIN 12
 
 #define NUMPIXELS 166 // 166
-#define LEDSTEP 3 // use only every x LED in strip
+#define LEDSTEP 1 // use only every x LED in strip
 
 #define HUE_RED 0
 #define HUE_BLUE 43690
