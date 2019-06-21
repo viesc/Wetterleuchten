@@ -5,7 +5,7 @@
 #define CLOCKPIN 12
 
 #define NUMPIXELS 166 // 166
-#define LEDSTEP 1 // use only every x LED in strip
+#define LEDSTEP 3 // use only every x LED in strip
 
 #define HUE_RED 0
 #define HUE_BLUE 43690
@@ -39,6 +39,10 @@ void setup()
   
   strip.begin();
   strip.show(); 
+
+  Serial.print("\npower drain on current LED settings: ");
+  Serial.print(NUMPIXELS * 0.02 / LEDSTEP);
+  Serial.println("A");
 }
 
 void loop() 
