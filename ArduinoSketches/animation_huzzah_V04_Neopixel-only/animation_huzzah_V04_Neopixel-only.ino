@@ -1,13 +1,24 @@
-#include <Adafruit_DotStar.h>
-#include <SPI.h> 
+#include <Adafruit_NeoPixel.h>
+//#include <Adafruit_DotStar.h>
 
-#define DATAPIN_STRIP1 14
+// LED Strip stuff
+#define DATAPIN_NEOPIX1 13
+#define NUMPIXELS_NEOPIX1 144 // 144
+#define LEDFRINGE_NEOPIX1 0
+
+//#define DATAPIN_DOTSTAR1 14
+//#define NUMPIXELS_DOTSTAR1 166 // 166
+//#define LEDFRINGE_DOTSTAR1 9
+//
+//#define DATAPIN_DOTSTAR2 15
+//#define NUMPIXELS_DOTSTAR2 166 // 166
+//#define LEDFRINGE_DOTSTAR2 9
+
 #define CLOCKPIN 12
 
-#define NUMPIXELS 166 // 166
-#define LEDFRINGE 9
 #define LEDSTEP 3 // use only every x LED in strip
 
+// COLORS
 #define HUE_RED 2000
 #define HUE_BLUE 43690
 #define HUE_GREY 46000
@@ -39,7 +50,8 @@ int saturation;
 bool isOn = false;
 long tDay = 0; // timer for the day animations
 
-Adafruit_DotStar strip(NUMPIXELS, DATAPIN_STRIP1, CLOCKPIN, DOTSTAR_BGR);
+//Adafruit_DotStar stripD1(NUMPIXELS_DOTSTAR1, DATAPIN_DOTSTAR1, CLOCKPIN, DOTSTAR_BGR);
+Adafruit_NeoPixel stripN1(NUMPIXELS_NEOPIX1, DATAPIN_NEOPIX1, NEO_GBRW + NEO_KHZ400);
 
 // TEMPERATURE DATA
 // historic data
@@ -53,10 +65,13 @@ void setup()
 {
   Serial.begin(9600);
   
-  strip.begin();
-  strip.show(); 
+//  stripD1.begin();
+//  stripD1.show();
 
-  Serial.println(String("\npower drain on current LED settings: ") + (NUMPIXELS * 0.02 / LEDSTEP) + String("A"));
+  stripN1.begin();
+  stripN1.show();
+
+  //Serial.println(String("\npower drain on current LED settings: ") + (NUMPIXELS * 0.02 / LEDSTEP) + String("A"));
 }
 
 void loop() 
@@ -101,36 +116,12 @@ void loop()
 
   curSat = (intensity == 0)? 0 : (int)((abs(intensity)/(float)INTENSITY_MAX)*55) + 200;
 
-  UpdateLEDs(intensity, curHue, curSat);
+  UpdateLEDs(false, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, intensity, curHue, curSat, stripN1);
+  //UpdateLEDs(true, NUMPIXELS_DOTSTAR1, LEDFRINGE_DOTSTAR1, intensity, curHue, curSat, stripD1, stripN1);
 
   //EncodeDate();
 
   delay(LOOP_CLOCK);
-}
-
-void EncodeDate()
-{
-  int month = GetMonthFromIndex(currentDay);
-  int day = GetDayFromIndex(currentDay);
-  Serial.println(month);
-  Serial.println(day);
-
-  int shift = 25;
-  
-  // dd
-  strip.setPixelColor(10+shift, strip.ColorHSV(HUE_RED, 255, (1 & day == 1)? 255 : 20));
-  strip.setPixelColor(20+shift, strip.ColorHSV(HUE_RED, 255, (2 & day == 2)? 255 : 20));
-  strip.setPixelColor(30+shift, strip.ColorHSV(HUE_RED, 255, (4 & day == 4)? 255 : 20));
-  strip.setPixelColor(40+shift, strip.ColorHSV(HUE_RED, 255, (8 & day == 8)? 255 : 20));
-  strip.setPixelColor(50+shift, strip.ColorHSV(HUE_RED, 255, (16 & day == 16)? 255 : 20));
-  
-  // mm
-  strip.setPixelColor(60+shift, strip.ColorHSV(HUE_BLUE, 255, (1 & month == 1)? 255 : 20));
-  strip.setPixelColor(70+shift, strip.ColorHSV(HUE_BLUE, 255, (2 & month == 2)? 255 : 20));
-  strip.setPixelColor(80+shift, strip.ColorHSV(HUE_BLUE, 255, (4 & month == 4)? 255 : 20));
-  strip.setPixelColor(90+shift, strip.ColorHSV(HUE_BLUE, 255, (8 & month == 8)? 255 : 20));
-
-  strip.show();
 }
 
 short lastIntensity = 0;
@@ -149,7 +140,8 @@ short GetIntensityFromPoti()
 }
 
 // plays LED Animation with current settings
-void UpdateLEDs (short intensity, int curHue, short curSat)
+//void UpdateLEDs (bool isDotStar, short LEDnum, short LEDfringe, short intensity, int curHue, short curSat, Adafruit_DotStar stripDS, Adafruit_NeoPixel stripNP)
+void UpdateLEDs (bool isDotStar, short LEDnum, short LEDfringe, short intensity, int curHue, short curSat, Adafruit_NeoPixel stripNP)
 {
   int maxValue = map(abs(intensity), 0, INTENSITY_MAX, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
   unsigned short fade = map(abs(intensity), 0, INTENSITY_MAX, MIN_FADE, MAX_FADE);
@@ -184,15 +176,32 @@ void UpdateLEDs (short intensity, int curHue, short curSat)
     isOn = false;
   }
 
-  for (byte i=LEDFRINGE; i<NUMPIXELS-LEDFRINGE; i+=LEDSTEP)
+  for (byte i=LEDfringe; i<LEDnum-LEDfringe; i+=LEDSTEP)
   {
     float weirdShit1 = sin((float)i / 40.0 * (float)tDay/1000.0);
     float weirdShit2 = sin((float)i / 10.0 * (float)tDay/500.0);
-    //float weirdShit2 = noise
-    strip.setPixelColor(i, strip.ColorHSV(hue, saturation, max(0, (int)(value - weirdShit1 * 10 - weirdShit2 * maxValue / 20.0))));
+
+    int finValue = max(0, (int)(value - weirdShit1 * 10 - weirdShit2 * maxValue / 20.0));
+
+    if (isDotStar)
+    {
+      //stripDS.setPixelColor(i, stripDS.ColorHSV(hue, saturation, finValue));
+    }
+    else
+    {
+      stripNP.setPixelColor(i, stripNP.ColorHSV(255, saturation, finValue));
+      //stripNP.setPixelColor(i, 0, 255, 0);
+    }
   }
 
-  strip.show();
+  if (isDotStar)
+  {
+    //stripDS.show();
+  }
+  else
+  {
+    stripNP.show();
+  }
 
   //Serial.println(String("value: ") + value);
 }
@@ -268,7 +277,85 @@ short GetDayFromIndex(short idx)
 }
 
 
+
 /* OLD STUFF
+
+void EncodeDateD(Adafruit_DotStar strip)
+{
+  int month = GetMonthFromIndex(currentDay);
+  int day = GetDayFromIndex(currentDay);
+  Serial.println(month);
+  Serial.println(day);
+
+  int shift = 25;
+  
+  // dd
+  strip.setPixelColor(10+shift, stripD1.ColorHSV(HUE_RED, 255, (1 & day == 1)? 255 : 20));
+  strip.setPixelColor(20+shift, strip.ColorHSV(HUE_RED, 255, (2 & day == 2)? 255 : 20));
+  strip.setPixelColor(30+shift, strip.ColorHSV(HUE_RED, 255, (4 & day == 4)? 255 : 20));
+  strip.setPixelColor(40+shift, strip.ColorHSV(HUE_RED, 255, (8 & day == 8)? 255 : 20));
+  strip.setPixelColor(50+shift, strip.ColorHSV(HUE_RED, 255, (16 & day == 16)? 255 : 20));
+  
+  // mm
+  strip.setPixelColor(60+shift, strip.ColorHSV(HUE_BLUE, 255, (1 & month == 1)? 255 : 20));
+  strip.setPixelColor(70+shift, strip.ColorHSV(HUE_BLUE, 255, (2 & month == 2)? 255 : 20));
+  strip.setPixelColor(80+shift, strip.ColorHSV(HUE_BLUE, 255, (4 & month == 4)? 255 : 20));
+  strip.setPixelColor(90+shift, strip.ColorHSV(HUE_BLUE, 255, (8 & month == 8)? 255 : 20));
+
+  strip.show();
+}
+
+void HSVtoRGB(int hue, int sat, int val, int colors[3]) 
+  {
+  // hue: 0-359, sat: 0-255, val (lightness): 0-255
+  int r, g, b, base;
+  if (sat == 0) 
+    {                     // Achromatic color (gray).
+    colors[0] = val;
+    colors[1] = val;
+    colors[2] = val;
+    } 
+  else  
+    {
+    base = ((255 - sat) * val) >> 8;
+    switch(hue / 60) 
+      {
+      case 0:
+        r = val;
+        g = (((val - base) * hue) / 60) + base;
+        b = base;
+        break;
+      case 1:
+        r = (((val - base) * (60 - (hue % 60))) / 60) + base;
+        g = val;
+        b = base;
+        break;
+      case 2:
+        r = base;
+        g = val;
+        b = (((val - base) * (hue % 60)) / 60) + base;
+        break;
+      case 3:
+        r = base;
+        g = (((val - base) * (60 - (hue % 60))) / 60) + base;
+        b = val;
+        break;
+      case 4:
+        r = (((val - base) * (hue % 60)) / 60) + base;
+        g = base;
+        b = val;
+        break;
+      case 5:
+        r = val;
+        g = base;
+        b = (((val - base) * (60 - (hue % 60))) / 60) + base;
+        break;
+      }
+      colors[0] = r;
+      colors[1] = g;
+      colors[2] = b;
+    }
+  }
 
 void PlayAnimation (short intensity)
 {
