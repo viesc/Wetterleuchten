@@ -14,7 +14,9 @@ void setup()
 }
 
 void loop() 
-{}
+{
+  PrintValues();
+  }
 
 void PrintValues ()
 {
@@ -31,6 +33,7 @@ void PrintValues ()
 
   int index = 0; //startDay; // index we start reading from meansT from
   while (index < 365) { // step through temperature information
+    
 
     float historicT = means2018[index]; // pgm_read_float(&means2018[index]);
     float recentT = meansT[index]; // pgm_read_float(&meansT[index]);
