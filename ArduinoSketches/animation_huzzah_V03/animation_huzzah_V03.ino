@@ -1,21 +1,21 @@
 #include <Adafruit_DotStar.h>
 #include <Adafruit_NeoPixel.h>
-#include <SPI.h> 
+#include <SPI.h>
 
 // LED Strip stuff
 #define DATAPIN_NEOPIX1 13
 #define NUMPIXELS_NEOPIX1 140 // 144
 #define LEDFRINGE_NEOPIX1 0
 
-#define DATAPIN_DOTSTAR1 14
+#define DATAPIN_DOTSTAR1 5
 #define NUMPIXELS_DOTSTAR1 166 // 166
 #define LEDFRINGE_DOTSTAR1 9
 
-#define DATAPIN_DOTSTAR2 15
+#define DATAPIN_DOTSTAR2 6
 #define NUMPIXELS_DOTSTAR2 166 // 166
 #define LEDFRINGE_DOTSTAR2 9
 
-#define CLOCKPIN 12
+#define CLOCKPIN 7
 
 #define LEDSTEP 3 // use only every x LED in strip
 
@@ -39,17 +39,18 @@
 #define MAX_FLICKER_ON 20
 #define MIN_FLICKER_OFF 30
 #define MAX_FLICKER_OFF 5
-#define MIN_FADE 150
-#define MAX_FADE 150
+#define MIN_FADE 0
+#define MAX_FADE 0
 
 // Global values for animation
 int intensity;
 int currentDay = -1;
 int hue;
 int value = 255;
-int saturation; 
+int saturation;
 bool isOn = false;
 long tDay = 0; // timer for the day animations
+int stripToUse = -1;
 
 Adafruit_DotStar stripD1(NUMPIXELS_DOTSTAR1, DATAPIN_DOTSTAR1, CLOCKPIN, DOTSTAR_BGR);
 Adafruit_NeoPixel stripN1(NUMPIXELS_NEOPIX1, DATAPIN_NEOPIX1, NEO_GRBW + NEO_KHZ800);
@@ -62,10 +63,10 @@ const float meansHist[] = {0.43, 0.60, 1.13, 1.01, 1.10, 0.54, 0.33, 0.21, -0.05
 const float means2018[] = {5.3, 5.5, 4.5, 7.7, 8.0, 5.6, 7.3, 5.2, 6.3, 4.3, 4.8, 4.7, 1.3, 0.1, -1.2, 0.5, 3.7, 4.5, 4.6, 2.4, 1.5, -0.1, 4.0, 4.3, 2.3, 1.5, 2.7, 7.0, 11.6, 8.0, 4.0, 3.7, 4.3, 3.4, 2.1, -0.1, -0.3, 0.1, 1.2, 0.8, -0.2, 1.8, 3.4, 1.1, 1.1, 1.2, 1.8, 0.4, 1.3, -0.5, -0.4, -0.8, -0.6, -1.5, -3.3, -7.9, -9.3, -9.7, -9.5, -8.4, -5.8, -3.2, -2.5, -0.6, 0.6, 4.8, 6.7, 6.7, 8.9, 10.3, 11.4, 11.3, 8.0, 5.7, 8.1, 0.5, -3.2, -3.8, -1.3, 0.9, 1.9, 4.1, 5.5, 3.2, 4.2, 5.8, 4.9, 9.5, 8.8, 11.9, 8.7, 9.3, 11.5, 12.9, 13.6, 9.8, 9.7, 13.7, 18.1, 15.3, 15.0, 17.6, 17.4, 15.0, 16.7, 16.7, 17.0, 16.4, 17.9, 19.7, 18.6, 20.0, 20.3, 18.6, 19.9, 14.0, 13.7, 17.5, 21.7, 21.7, 18.3, 19.4, 19.9, 18.9, 17.8, 17.4, 18.4, 17.2, 17.2, 18.7, 18.7, 19.4, 19.9, 17.8, 12.5, 14.6, 14.4, 17.0, 17.2, 17.7, 17.6, 18.8, 20.9, 20.7, 17.1, 19.6, 21.5, 22.7, 23.0, 22.7, 23.5, 22.3, 22.0, 23.0, 22.6, 23.4, 22.0, 20.7, 23.3, 22.3, 23.7, 25.6, 23.6, 19.6, 16.9, 19.2, 22.0, 23.2, 23.6, 23.4, 24.8, 26.2, 15.9, 15.5, 16.3, 16.2, 17.5, 16.8, 17.8, 21.4, 20.1, 16.7, 17.6, 20.1, 22.8, 26.4, 20.5, 22.0, 21.5, 23.1, 20.4, 18.2, 20.1, 21.8, 22.7, 23.5, 22.2, 21.2, 22.7, 24.3, 23.4, 22.3, 20.0, 21.4, 25.0, 24.2, 23.0, 24.2, 25.0, 26.9, 27.3, 27.4, 25.7, 24.9, 26.8, 26.6, 26.7, 25.4, 25.0, 26.8, 28.4, 24.8, 20.7, 23.6, 25.0, 22.3, 23.0, 22.5, 23.2, 24.4, 24.8, 26.7, 26.5, 25.7, 26.0, 23.2, 17.8, 15.1, 16.9, 20.3, 21.5, 21.1, 19.1, 17.3, 16.9, 18.0, 18.8, 21.1, 19.2, 19.3, 20.4, 18.6, 19.7, 23.0, 22.1, 21.7, 19.3, 18.5, 18.5, 19.4, 21.0, 20.4, 20.8, 21.3, 15.5, 15.4, 12.5, 9.9, 9.7, 13.2, 16.0, 12.4, 10.6, 10.4, 10.1, 13.7, 12.8, 13.0, 16.5, 17.3, 15.4, 14.2, 16.1, 15.9, 18.9, 15.1, 16.1, 14.3, 14.4, 13.6, 14.1, 13.8, 13.0, 9.8, 10.2, 11.4, 10.1, 13.5, 13.0, 9.2, 10.2, 14.5, 16.5, 11.4, 15.1, 13.8, 12.5, 11.9, 11.3, 12.8, 11.6, 10.8, 10.7, 9.5, 8.8, 8.1, 9.8, 9.7, 5.5, 4.2, 2.3, 1.3, 0.7, 2.4, 4.6, 3.7, 6.1, 6.9, 5.3, 5.0, 1.0, 0.3, -2.3, -1.7, -1.8, -0.9, 2.8, 8.5, 3.0, 1.5, 4.7, 7.3, 7.0, 5.8, 3.0, 1.6, -0.7, -1.3, -0.9, -0.9, -0.3, 2.7, 0.7, -1.4, -0.0, 8.4, 8.6, 4.7, 3.2, 4.1, 5.9, 6.2, 3.5, 4.3, 5.1};
 
 
-void setup() 
+void setup()
 {
   Serial.begin(9600);
-  
+
   stripD1.begin();
   stripD1.show();
 
@@ -75,48 +76,58 @@ void setup()
   //Serial.println(String("\npower drain on current LED settings: ") + (NUMPIXELS * 0.02 / LEDSTEP) + String("A"));
 }
 
-void loop() 
-{    
+void loop()
+{
   if (tDay >= DURATION_DAY || currentDay < 0)
   {
     tDay = 0;
     currentDay = (currentDay + 1) % 365;
 
-    Serial.println(String("current day: ") + currentDay + String(", ") 
-      + GetDayFromIndex(currentDay) + String(".") + GetMonthFromIndex(currentDay) + String("."));
-    
+    Serial.println(String("current day: ") + currentDay + String(", ")
+                   + GetDayFromIndex(currentDay) + String(".") + GetMonthFromIndex(currentDay) + String("."));
+
     short intensity = GetIntensityFromDifference(GetTempDifference(currentDay));
     Serial.println(String("current intensity: ") + intensity);
 
     float tempDiff = GetTempDifference(currentDay);
     Serial.println(String("current temp diff: ") + tempDiff);
-    
+
   }
-  
+
   tDay = tDay + LOOP_CLOCK;
-  
+
   short intensity = GetIntensityFromDifference(GetTempDifference(currentDay));
   //Serial.println(String("intensity: ") + intensity);
 
   //short intensity = GetIntensityFromPoti();
-  
-  int curHue, curSat;  
+
+  int curHue, curSat;
 
   if (intensity == 0)
   {
     curHue = HUE_GREY;
+    stripToUse = 1;
   }
   else if (intensity < 0)
   {
     curHue = HUE_BLUE;
+    stripToUse = 0;
   }
   else
   {
     curHue = HUE_RED;
+    stripToUse = 2;
   }
 
-  curSat = (intensity == 0)? 0 : (int)((abs(intensity)/(float)INTENSITY_MAX)*55) + 200;
+  curSat = (intensity == 0) ? 0 : (int)((abs(intensity) / (float)INTENSITY_MAX) * 55) + 200;
 
+//  switch (stripToUse) {
+//    case 0:
+//      UpdateLEDs(false, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, intensity, curHue, curSat, stripD1, stripN1);
+//      break;
+//    case 1:
+//      UpdateLEDs(true, NUMPIXELS_DOTSTAR1, LEDFRINGE_DOTSTAR1, intensity, curHue, curSat, stripD1, stripN1);
+//  }
   UpdateLEDs(false, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, intensity, curHue, curSat, stripD1, stripN1);
   //UpdateLEDs(true, NUMPIXELS_DOTSTAR1, LEDFRINGE_DOTSTAR1, intensity, curHue, curSat, stripD1, stripN1);
 
@@ -133,19 +144,19 @@ void EncodeDateD(Adafruit_DotStar strip)
   Serial.println(day);
 
   int shift = 25;
-  
+
   // dd
-  strip.setPixelColor(10+shift, stripD1.ColorHSV(HUE_RED, 255, (1 & day == 1)? 255 : 20));
-  strip.setPixelColor(20+shift, strip.ColorHSV(HUE_RED, 255, (2 & day == 2)? 255 : 20));
-  strip.setPixelColor(30+shift, strip.ColorHSV(HUE_RED, 255, (4 & day == 4)? 255 : 20));
-  strip.setPixelColor(40+shift, strip.ColorHSV(HUE_RED, 255, (8 & day == 8)? 255 : 20));
-  strip.setPixelColor(50+shift, strip.ColorHSV(HUE_RED, 255, (16 & day == 16)? 255 : 20));
-  
+  strip.setPixelColor(10 + shift, stripD1.ColorHSV(HUE_RED, 255, (1 & day == 1) ? 255 : 20));
+  strip.setPixelColor(20 + shift, strip.ColorHSV(HUE_RED, 255, (2 & day == 2) ? 255 : 20));
+  strip.setPixelColor(30 + shift, strip.ColorHSV(HUE_RED, 255, (4 & day == 4) ? 255 : 20));
+  strip.setPixelColor(40 + shift, strip.ColorHSV(HUE_RED, 255, (8 & day == 8) ? 255 : 20));
+  strip.setPixelColor(50 + shift, strip.ColorHSV(HUE_RED, 255, (16 & day == 16) ? 255 : 20));
+
   // mm
-  strip.setPixelColor(60+shift, strip.ColorHSV(HUE_BLUE, 255, (1 & month == 1)? 255 : 20));
-  strip.setPixelColor(70+shift, strip.ColorHSV(HUE_BLUE, 255, (2 & month == 2)? 255 : 20));
-  strip.setPixelColor(80+shift, strip.ColorHSV(HUE_BLUE, 255, (4 & month == 4)? 255 : 20));
-  strip.setPixelColor(90+shift, strip.ColorHSV(HUE_BLUE, 255, (8 & month == 8)? 255 : 20));
+  strip.setPixelColor(60 + shift, strip.ColorHSV(HUE_BLUE, 255, (1 & month == 1) ? 255 : 20));
+  strip.setPixelColor(70 + shift, strip.ColorHSV(HUE_BLUE, 255, (2 & month == 2) ? 255 : 20));
+  strip.setPixelColor(80 + shift, strip.ColorHSV(HUE_BLUE, 255, (4 & month == 4) ? 255 : 20));
+  strip.setPixelColor(90 + shift, strip.ColorHSV(HUE_BLUE, 255, (8 & month == 8) ? 255 : 20));
 
   strip.show();
 }
@@ -182,7 +193,7 @@ void UpdateLEDs (bool isDotStar, short LEDnum, short LEDfringe, short intensity,
   if (!isOn && value > 0)
   {
     value = max(value - fade, 0);
-    hue = (hue + 400)%65535;
+    hue = (hue + 400) % 65535;
     saturation = max((int)(saturation - fade / 10.0), 0);
   }
 
@@ -201,10 +212,10 @@ void UpdateLEDs (bool isDotStar, short LEDnum, short LEDfringe, short intensity,
     isOn = false;
   }
 
-  for (byte i=LEDfringe; i<LEDnum-LEDfringe; i+=LEDSTEP)
+  for (byte i = LEDfringe; i < LEDnum - LEDfringe; i += LEDSTEP)
   {
-    float weirdShit1 = sin((float)i / 40.0 * (float)tDay/1000.0);
-    float weirdShit2 = sin((float)i / 10.0 * (float)tDay/500.0);
+    float weirdShit1 = sin((float)i / 40.0 * (float)tDay / 1000.0);
+    float weirdShit2 = sin((float)i / 10.0 * (float)tDay / 500.0);
 
     int finValue = max(0, (int)(value - weirdShit1 * 10 - weirdShit2 * maxValue / 20.0));
 
@@ -246,13 +257,13 @@ int GetIntensityFromDifference (float difference)
   {
     intensity = constrain(mapf2i(abs(difference), normal, maxDiff, 0, INTENSITY_MAX), 0, INTENSITY_MAX);
   }
-  
+
   if (difference < 0)
   {
     intensity = -intensity;
   }
-    
-  return intensity;  
+
+  return intensity;
 }
 
 // classic "map", but takes float values and outputs integer
@@ -269,56 +280,111 @@ float GetTempDifference(unsigned short index)
 short GetMonthFromIndex(short idx)
 {
   unsigned int month = 0;
-  if (idx >= 31) { month++; idx -= 31; }
-  if (idx >= 28) { month++; idx -= 28; }
-  if (idx >= 31) { month++; idx -= 31; }
-  if (idx >= 30) { month++; idx -= 30; }
-  if (idx >= 31) { month++; idx -= 31; }
-  if (idx >= 30) { month++; idx -= 30; }
-  if (idx >= 31) { month++; idx -= 31; }
-  if (idx >= 31) { month++; idx -= 31; }
-  if (idx >= 30) { month++; idx -= 30; }
-  if (idx >= 31) { month++; idx -= 31; }
-  if (idx >= 30) { month++; idx -= 30; }
+  if (idx >= 31) {
+    month++;
+    idx -= 31;
+  }
+  if (idx >= 28) {
+    month++;
+    idx -= 28;
+  }
+  if (idx >= 31) {
+    month++;
+    idx -= 31;
+  }
+  if (idx >= 30) {
+    month++;
+    idx -= 30;
+  }
+  if (idx >= 31) {
+    month++;
+    idx -= 31;
+  }
+  if (idx >= 30) {
+    month++;
+    idx -= 30;
+  }
+  if (idx >= 31) {
+    month++;
+    idx -= 31;
+  }
+  if (idx >= 31) {
+    month++;
+    idx -= 31;
+  }
+  if (idx >= 30) {
+    month++;
+    idx -= 30;
+  }
+  if (idx >= 31) {
+    month++;
+    idx -= 31;
+  }
+  if (idx >= 30) {
+    month++;
+    idx -= 30;
+  }
 
-  return (month+1);
+  return (month + 1);
 }
 
 short GetDayFromIndex(short idx)
 {
-  if (idx >= 31) { idx -= 31; }
-  if (idx >= 28) { idx -= 28; }
-  if (idx >= 31) { idx -= 31; }
-  if (idx >= 30) { idx -= 30; }
-  if (idx >= 31) { idx -= 31; }
-  if (idx >= 30) { idx -= 30; }
-  if (idx >= 31) { idx -= 31; }
-  if (idx >= 31) { idx -= 31; }
-  if (idx >= 30) { idx -= 30; }
-  if (idx >= 31) { idx -= 31; }
-  if (idx >= 30) { idx -= 30; }
+  if (idx >= 31) {
+    idx -= 31;
+  }
+  if (idx >= 28) {
+    idx -= 28;
+  }
+  if (idx >= 31) {
+    idx -= 31;
+  }
+  if (idx >= 30) {
+    idx -= 30;
+  }
+  if (idx >= 31) {
+    idx -= 31;
+  }
+  if (idx >= 30) {
+    idx -= 30;
+  }
+  if (idx >= 31) {
+    idx -= 31;
+  }
+  if (idx >= 31) {
+    idx -= 31;
+  }
+  if (idx >= 30) {
+    idx -= 30;
+  }
+  if (idx >= 31) {
+    idx -= 31;
+  }
+  if (idx >= 30) {
+    idx -= 30;
+  }
 
-  return (idx+1);
+  return (idx + 1);
 }
 
 
 
 /* OLD STUFF
 
-void HSVtoRGB(int hue, int sat, int val, int colors[3]) 
+  void HSVtoRGB(int hue, int sat, int val, int colors[3])
   {
   // hue: 0-359, sat: 0-255, val (lightness): 0-255
   int r, g, b, base;
-  if (sat == 0) 
+  if (sat == 0)
     {                     // Achromatic color (gray).
     colors[0] = val;
     colors[1] = val;
     colors[2] = val;
-    } 
-  else  
+    }
+  else
     {
     base = ((255 - sat) * val) >> 8;
-    switch(hue / 60) 
+    switch(hue / 60)
       {
       case 0:
         r = val;
@@ -357,10 +423,10 @@ void HSVtoRGB(int hue, int sat, int val, int colors[3])
     }
   }
 
-void PlayAnimation (short intensity)
-{
+  void PlayAnimation (short intensity)
+  {
   short value = 0;
-  
+
   // turn on
   for (byte i=0; i<NUMPIXELS; i+=LEDSTEP)
   {
@@ -380,44 +446,44 @@ void PlayAnimation (short intensity)
     int pauseTime = random(
       map(intensity, 0, INTENSITY_MAX, MAX_PAUSE_X, MIN_PAUSE_X),
       map(intensity, 0, INTENSITY_MAX, MAX_PAUSE_Y, MIN_PAUSE_Y));
-      
+
     int fadeTime = 0;
     short value = map(intensity, 0, INTENSITY_MAX, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
-    
+
     while (value > 0 && fadeTime < pauseTime)
     {
       //Serial.print("fade: ");
       //Serial.println(value);
-      
+
       for (byte i=0; i<NUMPIXELS; i+=LEDSTEP)
       {
         strip.setPixelColor(i, strip.ColorHSV(HUE_RED, 255, value));
       }
-  
+
       strip.show();
-  
+
       delay(20);
-      
+
       fadeTime += 20;
       value -= map(intensity, 0, INTENSITY_MAX, MIN_FADE, MAX_FADE);
     }
-    
+
     for (byte i=0; i<NUMPIXELS; i+=LEDSTEP)
     {
        strip.setPixelColor(i, 0);
     }
     strip.show();
-  
+
     if (pauseTime - fadeTime > 0)
     {
       //Serial.println("start rest of pause");
       delay(pauseTime - fadeTime);
     }
   }
-}
+  }
 
-unsigned int IndexFromDate(byte day, byte month)
-{
+  unsigned int IndexFromDate(byte day, byte month)
+  {
   month--; day--;
 
   unsigned int idx = day;
@@ -436,12 +502,12 @@ unsigned int IndexFromDate(byte day, byte month)
   idx = constrain(idx, 0, 364);
 
   return idx;
-}
+  }
 
-void PrintValues ()
-{  
+  void PrintValues ()
+  {
   float maxT, minT;
-  
+
   Serial.println("Number of entries of 30 year averages: ");
   Serial.println(sizeof(meansHist) / 4 + 1);
   Serial.println("***************************************");
@@ -476,5 +542,5 @@ void PrintValues ()
   Serial.print(minT);
   Serial.print(", ");
   Serial.println(maxT);
-}
+  }
 */

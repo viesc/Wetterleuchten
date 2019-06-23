@@ -38,8 +38,8 @@ void setup() {
 // Runs 10 LEDs at a time along strip, cycling through red, green and blue.
 // This requires about 200 mA for all the 'on' pixels + 1 mA per 'off' pixel.
 
-int offPixels = 6; // Pixel to not use at end/beginning
-int      head  = 0 + offPixels, tail = -10-offPixels; // Index of first 'on' and 'off' pixels
+int offPixels = 0; // Pixel to not use at end/beginning
+int      head  = 0 + offPixels, tail = -NUMPIXELS; // Index of first 'on' and 'off' pixels
 uint32_t color = 0xFF0000;      // 'On' color (starts red)
 
 void loop() {
@@ -49,10 +49,12 @@ void loop() {
   strip.show();                     // Refresh strip
   delay(20);                        // Pause 20 milliseconds (~50 FPS)
 
-  if(++head >= NUMPIXELS-offPixels) {         // Increment head index.  Off end of strip?
+  head=head+1;
+  if(head >= NUMPIXELS-offPixels) {         // Increment head index.  Off end of strip?
     head = 0 + offPixels;                       //  Yes, reset head index to start
     if((color >>= 8) == 0)          //  Next color (R->G->B) ... past blue now?
       color = 0xFF0000;             //   Yes, reset to red
   }
-  if(++tail >= NUMPIXELS-offPixels) tail = 0 + offPixels; // Increment, reset tail index
+  tail=tail+1;
+  if(tail>= NUMPIXELS-offPixels) tail = NUMPIXELS; // Increment, reset tail index
 }
