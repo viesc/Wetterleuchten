@@ -1,3 +1,21 @@
+short lastIntensity = 0;
+short GetIntensityFromPoti()
+{
+  // TEMP get intensity from potentiometer
+  short intensity = constrain(map(analogRead(A0), 0, 650, -INTENSITY_MAX, INTENSITY_MAX), -INTENSITY_MAX, INTENSITY_MAX);
+
+  if (intensity != lastIntensity)
+  {
+    Serial.println(intensity);
+    lastIntensity = intensity;
+  }
+
+  return intensity;
+}
+
+
+
+
 /* OLD STUFF
 
 void EncodeDateD(Adafruit_DotStar strip)

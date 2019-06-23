@@ -15,7 +15,7 @@
 //#define NUMPIXELS_DOTSTAR2 166 // 166
 //#define LEDFRINGE_DOTSTAR2 9
 
-#define CLOCKPIN 12
+//#define CLOCKPIN 12
 
 #define LEDSTEP 3 // use only every x LED in strip
 
@@ -26,11 +26,11 @@
 #define HUE_YELLOW 15000
 
 // ANIMATION PARAMETERS
-#define DURATION_DAY 1233 //4931 // 9863 // ms duration for the data of one day
+#define DURATION_DAY 500 //1233 //4931 // 9863 // ms duration for the data of one day
 #define LOOP_CLOCK 20
 
 // intensity boundary
-#define INTENSITY_MAX 100
+#define INTENSITY_MAX 255
 
 // change values to define behavior on minimum or maximum intensity, interpolates in between
 #define MIN_BRIGHTNESS 30
@@ -72,7 +72,7 @@ void setup()
 
   stripN1.begin();
   stripN1.show();
-  testLED(NUMPIXELS_NEOPIX1, DATAPIN_NEOPIX1, stripN1);
+  //  testLED(NUMPIXELS_NEOPIX1, stripN1);
 
   //Serial.println(String("\npower drain on current LED settings: ") + (NUMPIXELS * 0.02 / LEDSTEP) + String("A"));
 }
@@ -95,36 +95,34 @@ void loop()
 
     Serial.println(String("current temp diff: ") + tempDiff);
 
+    //short intensity = GetIntensityFromPoti();
+
+    int curHue, curSat;
+
+    if (intensity == 0)
+    {
+      curHue = HUE_GREY;
+    }
+    else if (intensity < 0)
+    {
+      curHue = HUE_BLUE;
+    }
+    else
+    {
+      curHue = HUE_RED;
+    }
+
+    curSat = (intensity == 0) ? 0 : (int)((abs(intensity) / (float)INTENSITY_MAX) * 55) + 200;
+
+    fillWhite(curSat);
+
+    //UpdateLEDs(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, intensity, curHue, curSat, stripN1);
+    //UpdateLEDs(true, NUMPIXELS_DOTSTAR1, LEDFRINGE_DOTSTAR1, intensity, curHue, curSat, stripD1, stripN1);
+
+    //EncodeDate();
   }
 
   tDay = tDay + LOOP_CLOCK;
-
-  short intensity = GetIntensityFromDifference(tempDiff);
-  //Serial.println(String("intensity: ") + intensity);
-
-  //short intensity = GetIntensityFromPoti();
-
-  int curHue, curSat;
-
-  if (intensity == 0)
-  {
-    curHue = HUE_GREY;
-  }
-  else if (intensity < 0)
-  {
-    curHue = HUE_BLUE;
-  }
-  else
-  {
-    curHue = HUE_RED;
-  }
-
-  curSat = (intensity == 0) ? 0 : (int)((abs(intensity) / (float)INTENSITY_MAX) * 55) + 200;
-
-  //UpdateLEDs(false, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, intensity, curHue, curSat, stripN1);
-  //UpdateLEDs(true, NUMPIXELS_DOTSTAR1, LEDFRINGE_DOTSTAR1, intensity, curHue, curSat, stripD1, stripN1);
-
-  //EncodeDate();
 
   delay(LOOP_CLOCK);
 }
@@ -135,24 +133,6 @@ float GetTempDifference(unsigned short index)
   Serial.println(value);
   return value;
 }
-
-
-short lastIntensity = 0;
-short GetIntensityFromPoti()
-{
-  // TEMP get intensity from potentiometer
-  short intensity = constrain(map(analogRead(A0), 0, 650, -INTENSITY_MAX, INTENSITY_MAX), -INTENSITY_MAX, INTENSITY_MAX);
-
-  if (intensity != lastIntensity)
-  {
-    Serial.println(intensity);
-    lastIntensity = intensity;
-  }
-
-  return intensity;
-}
-
-
 
 
 int GetIntensityFromDifference (float difference)
