@@ -39,8 +39,8 @@
 // change values to define behavior on minimum or maximum intensity, interpolates in between
 #define MIN_BRIGHTNESS 30
 #define MAX_BRIGHTNESS 255
-#define MIN_FLICKER_ON 2
-#define MAX_FLICKER_ON 20
+#define MIN_FLICKER_ON 10
+#define MAX_FLICKER_ON 100
 #define MIN_FLICKER_OFF 30
 #define MAX_FLICKER_OFF 5
 #define MIN_FADE 150
@@ -56,7 +56,10 @@ bool isOn = false;
 long tDay = 0; // timer for the day animations
 float minDiff, maxDiff; // min & max of temperature deviation
 const float normal = 0; // +/- this amount counts as "normal" temperature
-
+// Flicker globals
+long flickerStart;
+int flickerTime;
+bool ledsOn = true;
 
 //Adafruit_DotStar stripD1(NUMPIXELS_DOTSTAR1, DATAPIN_DOTSTAR1, CLOCKPIN, DOTSTAR_BGR);
 Adafruit_NeoPixel stripN1(NUMPIXELS_NEOPIX1, DATAPIN_NEOPIX1, NEO_GBRW + NEO_KHZ400);
@@ -83,7 +86,7 @@ void setup()
 
   //Serial.println(String("\npower drain on current LED settings: ") + (NUMPIXELS * 0.02 / LEDSTEP) + String("A"));
   maxDiff = findMaxDiff();
-//  minDiff = findMinDiff();
+  //  minDiff = findMinDiff();
 
   Serial.println("Hej!");
   Serial.println("** SETTINGS **");
@@ -129,8 +132,9 @@ void loop()
 
     curSat = (intensity == 0) ? 0 : (int)((abs(intensity) / (float)INTENSITY_MAX) * 55) + 200;
 
-    fillWhite(intensity);
-    mixInHeat(intensity, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
+    //fillWhite(intensity);
+    if (tempDiff > 0) mixInHeat(intensity, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
+    else mixInCold(intensity, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
 
     //UpdateLEDs(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, intensity, curHue, curSat, stripN1);
     //UpdateLEDs(true, NUMPIXELS_DOTSTAR1, LEDFRINGE_DOTSTAR1, intensity, curHue, curSat, stripD1, stripN1);
@@ -138,8 +142,22 @@ void loop()
     //EncodeDate();
   }
 
-  
-
+  if (ledsOn) { // if leds are on check if flickering should be activated
+    if (random(100) < intensity) { // the higher intensity the higher the chance of flicker
+      flickerStart = millis();
+      turnOff(&stripN1);
+      ledsOn = false;
+      flickerTime = random(MIN_FLICKER_ON, MAX_FLICKER_ON); // set random flicker time
+      Serial.println("flick on");
+    }
+  } else { // if leds are off, check when to turn on again
+    if (millis() - flickerStart > flickerTime)   // current ms - start ms = time passed, check if time passed is > flickerTime
+    {
+      ledsOn = true;
+      mixInHeat(intensity, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
+      Serial.println("flick off");
+    }
+  }
 
 
   tDay = tDay + LOOP_CLOCK;
@@ -150,7 +168,7 @@ void loop()
 float GetTempDifference(unsigned short index)
 {
   float value = pgm_read_float_near( diffT + index );
-//  Serial.println(value);
+  //  Serial.println(value);
   return value;
 }
 

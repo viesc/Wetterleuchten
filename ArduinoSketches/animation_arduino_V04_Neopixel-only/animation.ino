@@ -1,7 +1,7 @@
 void mixInHeat(byte intensity, byte LEDnum, byte LEDfringe) {
   Serial.println("*mixing in hot pixels");
   for (byte i = LEDfringe; i < LEDnum-LEDfringe; i += LEDSTEP) {
-    if (random(intensity) > 20) {
+    if (random(100) < intensity) {
       stripN1.setPixelColor(i, stripN1.Color(255, 0, 0, 0)); // mix in red pixels using simple chance
       Serial.print("1");
     }
@@ -15,9 +15,9 @@ void mixInHeat(byte intensity, byte LEDnum, byte LEDfringe) {
 }
 
 void mixInCold(byte intensity, byte LEDnum, byte LEDfringe) {
-  Serial.println("*mixing in hot pixels");
+  Serial.println("*mixing in cold pixels");
   for (byte i = LEDfringe; i < LEDnum-LEDfringe; i += LEDSTEP) {
-    if (random(intensity) > 20) {
+    if (random(100) < intensity) {
       stripN1.setPixelColor(i, stripN1.Color(0, 0, 255, 0)); // mix in blue pixels using simple chance
       Serial.print("1");
     }
@@ -40,7 +40,7 @@ void fillWhite(byte intensity) {
 void turnOff(Adafruit_NeoPixel stripNP) {
     stripNP.fill(stripNP.Color(0, 0, 0, 0));
     stripNP.show();
-    Serial.println("*lights off");
+    //Serial.println("*lights off");
 }
 
 void testLED(byte LEDnum, Adafruit_NeoPixel stripNP) {
