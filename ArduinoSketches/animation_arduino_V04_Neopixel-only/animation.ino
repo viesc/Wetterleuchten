@@ -1,81 +1,101 @@
 void mixInHeat(byte intensity, byte LEDnum, byte LEDfringe) {
   Serial.println("*mixing in hot pixels");
-  for (byte i = LEDfringe; i < LEDnum-LEDfringe; i += LEDSTEP) {
+  for (byte i = LEDfringe; i < LEDnum - LEDfringe; i += LEDSTEP) {
     if (random(100) < intensity) {
       stripN1.setPixelColor(i, stripN1.Color(255, 0, 0, 0)); // mix in red pixels using simple chance
+#ifdef DEBUG
       Serial.print("1");
+#endif
     }
     else {
       stripN1.setPixelColor(i, stripN1.Color(0, 0, 0, 255));
+#ifdef DEBUG
       Serial.print("0");
+#endif
     }
   }
-    Serial.println();
-    stripN1.show();
+  #ifdef DEBUG
+  Serial.println();
+  #endif
+  stripN1.show();
 }
 
 void mixInCold(byte intensity, byte LEDnum, byte LEDfringe) {
   Serial.println("*mixing in cold pixels");
-  for (byte i = LEDfringe; i < LEDnum-LEDfringe; i += LEDSTEP) {
+  for (byte i = LEDfringe; i < LEDnum - LEDfringe; i += LEDSTEP) {
     if (random(100) < intensity) {
       stripN1.setPixelColor(i, stripN1.Color(0, 0, 255, 0)); // mix in blue pixels using simple chance
+#ifdef DEBUG
       Serial.print("1");
+#endif
     }
     else {
       stripN1.setPixelColor(i, stripN1.Color(0, 0, 0, 255));
+#ifdef DEBUG
       Serial.print("0");
+#endif
     }
   }
-    Serial.println();
-    stripN1.show();
+#ifdef DEBUG
+  Serial.println();
+#endif
+  stripN1.show();
 }
 
 void fillWhite(byte intensity) {
-    stripN1.fill(stripN1.Color(0, 0, 0, stripN1.gamma8(intensity)));
-    stripN1.show();
-    Serial.print("*white on: ");
-    Serial.println(intensity);
+  stripN1.fill(stripN1.Color(0, 0, 0, stripN1.gamma8(intensity)));
+  stripN1.show();
+  Serial.print("*white on: ");
+  Serial.println(intensity);
 }
 
-void turnOff(Adafruit_NeoPixel stripNP) {
-    stripNP.fill(stripNP.Color(0, 0, 0, 0));
-    stripNP.show();
-    //Serial.println("*lights off");
+void turnOff() {
+  stripN1.fill(stripN1.Color(0, 0, 0, 0));
+  stripN1.show();
+  //Serial.println("*lights off");
 }
 
-void testLED(byte LEDnum, Adafruit_NeoPixel stripNP) {
+void testLED(byte LEDnum) {
 
   Serial.println("Test, test, 1, 2...");
 
   for (byte i = 0; i < LEDnum; i += LEDSTEP) {
-    stripNP.setPixelColor(i, stripNP.Color(0, 0, 0, 255));
-    stripNP.show();
+    stripN1.setPixelColor(i, stripN1.Color(0, 0, 0, 255));
+    stripN1.show();
+#ifdef DEBUG
     Serial.print("y");
+#endif
     delay(1);
   }
   delay(300);
   for (byte i = 0; i < LEDnum; i += LEDSTEP) {
-    stripNP.setPixelColor(i, stripNP.Color(255, 0, 0, 0));
-    stripNP.show();
+    stripN1.setPixelColor(i, stripN1.Color(255, 0, 0, 0));
+    stripN1.show();
+#ifdef DEBUG
     Serial.print("e");
+#endif
     delay(1);
   }
   delay(300);
   for (byte i = 0; i < LEDnum; i += LEDSTEP) {
-    stripNP.setPixelColor(i, stripNP.Color(0, 255, 0, 0));
-    stripNP.show();
+    stripN1.setPixelColor(i, stripN1.Color(0, 255, 0, 0));
+    stripN1.show();
+#ifdef DEBUG
     Serial.print("a");
+#endif
     delay(1);
   }
   delay(300);
   for (byte i = 0; i < LEDnum; i += LEDSTEP) {
-    stripNP.setPixelColor(i, stripNP.Color(0, 0, 255, 0));
-    stripNP.show();
+    stripN1.setPixelColor(i, stripN1.Color(0, 0, 255, 0));
+    stripN1.show();
+#ifdef DEBUG
     Serial.print("h");
+#endif
     delay(1);
   }
   delay(300);
-  Serial.println("1");
+  Serial.println("!");
 }
 
 // plays LED Animation with current settings

@@ -2,12 +2,14 @@
 //#include <Adafruit_DotStar.h>
 #include <avr/pgmspace.h>
 
+//#define DEBUG
+
 // GENERAL SETTINGS
-#define TOTAL_DAYS 30
+#define TOTAL_DAYS 365
 
 
 // LED Strip stuff
-#define DATAPIN_NEOPIX1 13
+#define DATAPIN_NEOPIX1 4
 #define NUMPIXELS_NEOPIX1 144 // 144
 #define LEDFRINGE_NEOPIX1 0
 
@@ -21,7 +23,7 @@
 
 //#define CLOCKPIN 12
 
-#define LEDSTEP 3 // use only every x LED in strip
+#define LEDSTEP 2 // use only every x LED in strip
 
 // COLORS
 #define HUE_RED 2000
@@ -30,7 +32,7 @@
 #define HUE_YELLOW 15000
 
 // ANIMATION PARAMETERS
-#define DURATION_DAY 500 //1233 //4931 // 9863 // ms duration for the data of one day
+#define DURATION_DAY 2465 //1233 //2465 //4931 // 9863 // ms duration for the data of one day
 #define LOOP_CLOCK 20
 
 // intensity boundary
@@ -40,7 +42,7 @@
 #define MIN_BRIGHTNESS 30
 #define MAX_BRIGHTNESS 255
 #define MIN_FLICKER_ON 10
-#define MAX_FLICKER_ON 100
+#define MAX_FLICKER_ON 300
 #define MIN_FLICKER_OFF 30
 #define MAX_FLICKER_OFF 5
 #define MIN_FADE 150
@@ -54,15 +56,17 @@ int value = 255;
 int saturation;
 bool isOn = false;
 long tDay = 0; // timer for the day animations
+float tempDiff = 0; // holds deviation temperature of day
 float minDiff, maxDiff; // min & max of temperature deviation
 const float normal = 0; // +/- this amount counts as "normal" temperature
 // Flicker globals
 long flickerStart;
 int flickerTime;
 bool ledsOn = true;
+int mySeed = 255;
 
 //Adafruit_DotStar stripD1(NUMPIXELS_DOTSTAR1, DATAPIN_DOTSTAR1, CLOCKPIN, DOTSTAR_BGR);
-Adafruit_NeoPixel stripN1(NUMPIXELS_NEOPIX1, DATAPIN_NEOPIX1, NEO_GBRW + NEO_KHZ400);
+Adafruit_NeoPixel stripN1(NUMPIXELS_NEOPIX1, DATAPIN_NEOPIX1, NEO_GRBW + NEO_KHZ800);
 
 // TEMPERATURE DATA
 // historic data
@@ -82,7 +86,22 @@ void setup()
 
   stripN1.begin();
   stripN1.show();
-  //  testLED(NUMPIXELS_NEOPIX1, stripN1);
+  testLED(NUMPIXELS_NEOPIX1);
+  delay(200);
+  turnOff();
+  delay(200);
+  fillWhite(255);
+  delay(500);
+  turnOff();
+  delay(200);
+  mixInHeat(50, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
+  delay(500);
+  turnOff();
+  delay(200);
+  mixInCold(50, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
+  delay(500);
+  turnOff();
+  delay(2000);
 
   //Serial.println(String("\npower drain on current LED settings: ") + (NUMPIXELS * 0.02 / LEDSTEP) + String("A"));
   maxDiff = findMaxDiff();
@@ -96,10 +115,11 @@ void setup()
 
 void loop()
 {
-  float tempDiff = 0;
+//  randomSeed(mySeed);
 
   if (tDay >= DURATION_DAY || currentDay < 0)
   {
+    //mySeed = random(1024);
     tDay = 0;
     currentDay = (currentDay + 1) % TOTAL_DAYS;
 
@@ -143,19 +163,26 @@ void loop()
   }
 
   if (ledsOn) { // if leds are on check if flickering should be activated
-    if (random(100) < intensity) { // the higher intensity the higher the chance of flicker
+    if (random(100) < intensity/3) { // the higher intensity the higher the chance of flicker
+           
       flickerStart = millis();
-      turnOff(&stripN1);
+      turnOff();
       ledsOn = false;
       flickerTime = random(MIN_FLICKER_ON, MAX_FLICKER_ON); // set random flicker time
+#ifdef DEBUG
       Serial.println("flick on");
+#endif
     }
   } else { // if leds are off, check when to turn on again
+     flickerTime = random(MIN_FLICKER_ON, MAX_FLICKER_ON); // set random flicker time
     if (millis() - flickerStart > flickerTime)   // current ms - start ms = time passed, check if time passed is > flickerTime
     {
       ledsOn = true;
-      mixInHeat(intensity, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
+      if (tempDiff > 0) mixInHeat(intensity, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
+      else mixInCold(intensity, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
+#ifdef DEBUG
       Serial.println("flick off");
+#endif
     }
   }
 
@@ -176,6 +203,5 @@ float GetTempDifference(unsigned short index)
 int GetIntensityFromDifference (float difference)
 {
   intensity = mapf2i(abs(difference), normal, maxDiff, 0, INTENSITY_MAX);
-
   return intensity;
 }
