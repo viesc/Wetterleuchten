@@ -2,6 +2,10 @@
 //#include <Adafruit_DotStar.h>
 #include <avr/pgmspace.h>
 
+// GENERAL SETTINGS
+#define TOTAL_DAYS 30
+
+
 // LED Strip stuff
 #define DATAPIN_NEOPIX1 13
 #define NUMPIXELS_NEOPIX1 144 // 144
@@ -30,7 +34,7 @@
 #define LOOP_CLOCK 20
 
 // intensity boundary
-#define INTENSITY_MAX 255
+#define INTENSITY_MAX 100
 
 // change values to define behavior on minimum or maximum intensity, interpolates in between
 #define MIN_BRIGHTNESS 30
@@ -50,6 +54,8 @@ int value = 255;
 int saturation;
 bool isOn = false;
 long tDay = 0; // timer for the day animations
+float minDiff, maxDiff; // min & max of temperature deviation
+const float normal = 0; // +/- this amount counts as "normal" temperature
 
 //Adafruit_DotStar stripD1(NUMPIXELS_DOTSTAR1, DATAPIN_DOTSTAR1, CLOCKPIN, DOTSTAR_BGR);
 Adafruit_NeoPixel stripN1(NUMPIXELS_NEOPIX1, DATAPIN_NEOPIX1, NEO_GBRW + NEO_KHZ400);
@@ -75,6 +81,13 @@ void setup()
   //  testLED(NUMPIXELS_NEOPIX1, stripN1);
 
   //Serial.println(String("\npower drain on current LED settings: ") + (NUMPIXELS * 0.02 / LEDSTEP) + String("A"));
+  maxDiff = findMaxDiff();
+  minDiff = findMinDiff();
+
+  Serial.println("Hej!");
+  Serial.println("** SETTINGS **");
+  Serial.print("normal range +/- "); Serial.println(normal);
+  Serial.print("max deviation found: "); Serial.println(maxDiff);
 }
 
 void loop()
@@ -84,8 +97,9 @@ void loop()
   if (tDay >= DURATION_DAY || currentDay < 0)
   {
     tDay = 0;
-    currentDay = (currentDay + 1) % 365;
+    currentDay = (currentDay + 1) % TOTAL_DAYS;
 
+    Serial.println();
     Serial.println(String("current day: ") + currentDay + String(", ")
                    + GetDayFromIndex(currentDay) + String(".") + GetMonthFromIndex(currentDay) + String("."));
 
@@ -130,127 +144,14 @@ void loop()
 float GetTempDifference(unsigned short index)
 {
   float value = pgm_read_float_near( diffT + index );
-  Serial.println(value);
+//  Serial.println(value);
   return value;
 }
 
 
 int GetIntensityFromDifference (float difference)
 {
-  const float normal = 2; // +/- this amount counts as "normal" temperature
-  const float maxDiff = 8.0; // +/- this temperature counts as 100% difference (to our animation)
-
-  short intensity = 0;
-
-  if (abs(difference) < normal)
-  {
-    intensity = 0;
-  }
-  else
-  {
-    intensity = constrain(mapf2i(abs(difference), normal, maxDiff, 0, INTENSITY_MAX), 0, INTENSITY_MAX);
-  }
-
-  if (difference < 0)
-  {
-    intensity = -intensity;
-  }
+  intensity = mapf2i(abs(difference), normal, maxDiff, 0, INTENSITY_MAX);
 
   return intensity;
-}
-
-// classic "map", but takes float values and outputs integer
-int mapf2i(float x, float in_min, float in_max, float out_min, float out_max)
-{
-  return (int)((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min);
-}
-
-short GetMonthFromIndex(short idx)
-{
-  unsigned int month = 0;
-  if (idx >= 31) {
-    month++;
-    idx -= 31;
-  }
-  if (idx >= 28) {
-    month++;
-    idx -= 28;
-  }
-  if (idx >= 31) {
-    month++;
-    idx -= 31;
-  }
-  if (idx >= 30) {
-    month++;
-    idx -= 30;
-  }
-  if (idx >= 31) {
-    month++;
-    idx -= 31;
-  }
-  if (idx >= 30) {
-    month++;
-    idx -= 30;
-  }
-  if (idx >= 31) {
-    month++;
-    idx -= 31;
-  }
-  if (idx >= 31) {
-    month++;
-    idx -= 31;
-  }
-  if (idx >= 30) {
-    month++;
-    idx -= 30;
-  }
-  if (idx >= 31) {
-    month++;
-    idx -= 31;
-  }
-  if (idx >= 30) {
-    month++;
-    idx -= 30;
-  }
-
-  return (month + 1);
-}
-
-short GetDayFromIndex(short idx)
-{
-  if (idx >= 31) {
-    idx -= 31;
-  }
-  if (idx >= 28) {
-    idx -= 28;
-  }
-  if (idx >= 31) {
-    idx -= 31;
-  }
-  if (idx >= 30) {
-    idx -= 30;
-  }
-  if (idx >= 31) {
-    idx -= 31;
-  }
-  if (idx >= 30) {
-    idx -= 30;
-  }
-  if (idx >= 31) {
-    idx -= 31;
-  }
-  if (idx >= 31) {
-    idx -= 31;
-  }
-  if (idx >= 30) {
-    idx -= 30;
-  }
-  if (idx >= 31) {
-    idx -= 31;
-  }
-  if (idx >= 30) {
-    idx -= 30;
-  }
-
-  return (idx + 1);
 }
