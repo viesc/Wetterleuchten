@@ -57,6 +57,7 @@ long tDay = 0; // timer for the day animations
 float minDiff, maxDiff; // min & max of temperature deviation
 const float normal = 0; // +/- this amount counts as "normal" temperature
 
+
 //Adafruit_DotStar stripD1(NUMPIXELS_DOTSTAR1, DATAPIN_DOTSTAR1, CLOCKPIN, DOTSTAR_BGR);
 Adafruit_NeoPixel stripN1(NUMPIXELS_NEOPIX1, DATAPIN_NEOPIX1, NEO_GBRW + NEO_KHZ400);
 
@@ -82,7 +83,7 @@ void setup()
 
   //Serial.println(String("\npower drain on current LED settings: ") + (NUMPIXELS * 0.02 / LEDSTEP) + String("A"));
   maxDiff = findMaxDiff();
-  minDiff = findMinDiff();
+//  minDiff = findMinDiff();
 
   Serial.println("Hej!");
   Serial.println("** SETTINGS **");
@@ -128,13 +129,18 @@ void loop()
 
     curSat = (intensity == 0) ? 0 : (int)((abs(intensity) / (float)INTENSITY_MAX) * 55) + 200;
 
-    fillWhite(curSat);
+    fillWhite(intensity);
+    mixInHeat(intensity, NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1);
 
     //UpdateLEDs(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, intensity, curHue, curSat, stripN1);
     //UpdateLEDs(true, NUMPIXELS_DOTSTAR1, LEDFRINGE_DOTSTAR1, intensity, curHue, curSat, stripD1, stripN1);
 
     //EncodeDate();
   }
+
+  
+
+
 
   tDay = tDay + LOOP_CLOCK;
 

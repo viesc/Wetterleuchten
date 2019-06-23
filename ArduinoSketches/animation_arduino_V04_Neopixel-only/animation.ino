@@ -1,3 +1,35 @@
+void mixInHeat(byte intensity, byte LEDnum, byte LEDfringe) {
+  Serial.println("*mixing in hot pixels");
+  for (byte i = LEDfringe; i < LEDnum-LEDfringe; i += LEDSTEP) {
+    if (random(intensity) > 20) {
+      stripN1.setPixelColor(i, stripN1.Color(255, 0, 0, 0)); // mix in red pixels using simple chance
+      Serial.print("1");
+    }
+    else {
+      stripN1.setPixelColor(i, stripN1.Color(0, 0, 0, 255));
+      Serial.print("0");
+    }
+  }
+    Serial.println();
+    stripN1.show();
+}
+
+void mixInCold(byte intensity, byte LEDnum, byte LEDfringe) {
+  Serial.println("*mixing in hot pixels");
+  for (byte i = LEDfringe; i < LEDnum-LEDfringe; i += LEDSTEP) {
+    if (random(intensity) > 20) {
+      stripN1.setPixelColor(i, stripN1.Color(0, 0, 255, 0)); // mix in blue pixels using simple chance
+      Serial.print("1");
+    }
+    else {
+      stripN1.setPixelColor(i, stripN1.Color(0, 0, 0, 255));
+      Serial.print("0");
+    }
+  }
+    Serial.println();
+    stripN1.show();
+}
+
 void fillWhite(byte intensity) {
     stripN1.fill(stripN1.Color(0, 0, 0, stripN1.gamma8(intensity)));
     stripN1.show();
