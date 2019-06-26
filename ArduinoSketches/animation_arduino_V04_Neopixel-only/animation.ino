@@ -1,5 +1,25 @@
+void mixLedDirection() {
+    Serial.println("mix led directions");
+    for (int i = 0; i < NUMPIXELS_NEOPIX1; i += LEDSTEP) {
+      ledDir[i] = random(2);
+      Serial.print(ledDir[i]);
+    }
+}
+
+void moveLedArray() {
+  int step = 4;
+  for (int i = step; i < NUMPIXELS_NEOPIX1-1; i += LEDSTEP) {
+    if(ledMix[i] == 1) {
+      if(ledDir[i] == 0) ledMix[i-step] == 1;
+      else ledMix[i+step] == 1;
+    }
+//    Serial.print(ledMix[i]);
+  }
+//  Serial.println();
+}
+
 void mixLedArray() {
-  // fill array with randomly mixed colors based on intensity
+  // fill array with randomly placed colors based on intensity and chance
   Serial.println("mixing leds:");
   for (int i = 0; i < NUMPIXELS_NEOPIX1; i += LEDSTEP) {
     if (random(70) < intensity) ledMix[i] = 1;
@@ -9,8 +29,34 @@ void mixLedArray() {
   Serial.println();
 }
 
+// fill array with randomly placed colors based on intensity
+void mixLedArrayEven() {
+  // setting all to white first
+  for (int i = 0; i < NUMPIXELS_NEOPIX1; i += LEDSTEP) {
+    ledMix[i] = 0;
+  }
+  // how many leds to color
+  byte ledCount = map(intensity, 0, INTENSITY_MAX, 0, NUMPIXELS_NEOPIX1 / LEDSTEP);
+  Serial.println(String("mixing led count:") + ledCount);
+  byte j = 0;
+  // randomly color until ledCount is reached
+  while (j < ledCount) {
+    byte ledI = random(NUMPIXELS_NEOPIX1 / LEDSTEP) * LEDSTEP;
+    if (ledMix[ledI] == 0) {
+      ledMix[ledI] = 1;
+      j++;
+    }
+  }
+  // output to serial
+  for (int i = 0; i < NUMPIXELS_NEOPIX1; i += LEDSTEP) {
+    if (ledMix[i] == 1) Serial.print(1);
+    else Serial.print(0);
+  }
+  Serial.println();
+}
+
+
 void mixInHeat(byte LEDnum, byte LEDfringe, bool* ledMix) {
-  Serial.println("*mixing in hot pixels");
   for (byte i = LEDfringe; i < LEDnum - LEDfringe; i += LEDSTEP) {
     if (ledMix[i] == 1) {
       stripN1.setPixelColor(i, stripN1.Color(255, 0, 0, 0)); // mix in red pixels using simple chance
@@ -19,7 +65,7 @@ void mixInHeat(byte LEDnum, byte LEDfringe, bool* ledMix) {
 #endif
     }
     else {
-      stripN1.setPixelColor(i, stripN1.Color(0, 0, 0, 255));
+      stripN1.setPixelColor(i, stripN1.Color(0, GREEN_BRIGHT, 0, 0));
 #ifdef DEBUG
       Serial.print("0");
 #endif
@@ -31,8 +77,7 @@ void mixInHeat(byte LEDnum, byte LEDfringe, bool* ledMix) {
   stripN1.show();
 }
 
-void mixInCold(byte LEDnum, byte LEDfringe, bool ledMix[]) {
-  Serial.println("*mixing in cold pixels");
+void mixInCold(byte LEDnum, byte LEDfringe, bool* ledMix) {
   for (byte i = LEDfringe; i < LEDnum - LEDfringe; i += LEDSTEP) {
     if (ledMix[i] == 1) {
       stripN1.setPixelColor(i, stripN1.Color(0, 0, 255, 0)); // mix in blue pixels using simple chance
@@ -41,7 +86,7 @@ void mixInCold(byte LEDnum, byte LEDfringe, bool ledMix[]) {
 #endif
     }
     else {
-      stripN1.setPixelColor(i, stripN1.Color(0, 0, 0, 255));
+      stripN1.setPixelColor(i, stripN1.Color(0, GREEN_BRIGHT, 0, 0));
 #ifdef DEBUG
       Serial.print("0");
 #endif
@@ -107,6 +152,23 @@ void testLED(byte LEDnum) {
   }
   delay(300);
   Serial.println("!");
+
+  delay(200);
+  turnOff();
+  delay(200);
+  fillWhite(255);
+  delay(500);
+  turnOff();
+  delay(200);
+  mixLedArray();
+  mixInHeat(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
+  delay(500);
+  turnOff();
+  delay(200);
+  mixInCold(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
+  delay(500);
+  turnOff();
+  delay(2000);
 }
 
 // plays LED Animation with current settings

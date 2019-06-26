@@ -23,7 +23,7 @@
 
 //#define CLOCKPIN 12
 
-#define LEDSTEP 2 // use only every x LED in strip
+#define LEDSTEP 1 // use only every x LED in strip
 
 // COLORS
 #define HUE_RED 2000
@@ -32,7 +32,7 @@
 #define HUE_YELLOW 15000
 
 // ANIMATION PARAMETERS
-#define DURATION_DAY 2465 //516 //1233 //2465 //4931 // 9863 // ms duration for the data of one day
+#define DURATION_DAY 4931 // 2465 //516 //1233 //2465 //4931 // 9863 // ms duration for the data of one day
 #define LOOP_CLOCK 20
 
 // intensity boundary
@@ -47,30 +47,34 @@
 #define MAX_FLICKER_OFF 5
 #define MIN_FADE 150
 #define MAX_FADE 150
-#define MIN_FLICKER_MIN 10
-#define MIN_FLICKER_MAX 1
+#define WHITE_BRIGHT 120
+#define GREEN_BRIGHT 40
+#define MIN_FLICKER_MIN 20
+#define MIN_FLICKER_MAX 5
 #define MAX_FLICKER_MIN 40
-#define MAX_FLICKER_MAX 500
+#define MAX_FLICKER_MAX 200
 
 
 // Global values for animation
-int intensity;
+int intensity = 50;
 int currentDay = -1;
 int hue;
 int value = 255;
 int saturation;
 bool isOn = false;
 long tDay = 0; // timer for the day animations
+long dayStart = 0;
 float tempDiff = 0; // holds deviation temperature of day
 float maxDiff; // min & max of temperature deviation
 float normal = 0; // +/- this amount counts as "normal" temperature
 // Flicker globals
-float flickerChance = 0;
+int flickerChance = 0;
 long flickerStart;
 int flickerTime;
 bool ledsOn = true;
 int mySeed = 255;
 bool ledMix[NUMPIXELS_NEOPIX1]; //stores which LEDs to color
+bool ledDir[NUMPIXELS_NEOPIX1]; //stores which LEDs to color
 
 
 //Adafruit_DotStar stripD1(NUMPIXELS_DOTSTAR1, DATAPIN_DOTSTAR1, CLOCKPIN, DOTSTAR_BGR);
@@ -96,42 +100,31 @@ void setup()
 
   stripN1.begin();
   stripN1.show();
-  testLED(NUMPIXELS_NEOPIX1);
-  delay(200);
-  turnOff();
-  delay(200);
-  fillWhite(255);
-  delay(500);
-  turnOff();
-  delay(200);
-  mixLedArray();
-  mixInHeat(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
-  delay(500);
-  turnOff();
-  delay(200);
-  mixInCold(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
-  delay(500);
-  turnOff();
-  delay(2000);
 
   //Serial.println(String("\npower drain on current LED settings: ") + (NUMPIXELS * 0.02 / LEDSTEP) + String("A"));
   maxDiff = findMaxDiff();
   //  minDiff = findMinDiff();
 
   Serial.println("Hej!");
-  Serial.println("** SETTINGS **");
-  Serial.print("normal range +/- "); Serial.println(normal);
+  Serial.println("** Climate Justice now! **");
   Serial.print("max deviation found: "); Serial.println(maxDiff);
+  //  testLED(NUMPIXELS_NEOPIX1);
 }
 
 void loop()
 {
-//  randomSeed(analogRead(A0)); // change random based on 
+  //  randomSeed(analogRead(A0)); // change random based on
 
-  if (tDay >= DURATION_DAY || currentDay < 0)
+  //  if (currentDay + 1 == 0) testLED(NUMPIXELS_NEOPIX1);
+  if (currentDay + 1 == 0) rainbowFade2White(2, 3, 0);
+
+
+  if (millis() - dayStart >= DURATION_DAY || currentDay < 0)
   {
     //mySeed = random(1024);
+
     tDay = 0;
+    dayStart = millis();
     currentDay = (currentDay + 1) % TOTAL_DAYS;
 
     Serial.println();
@@ -147,36 +140,30 @@ void loop()
     Serial.println(String("current intensity: ") + intensity);
 
     // subtract normal deviation from daily deviation, only start flickering when too warm or cold for season
-    flickerChance = abs(tempDiff) - normal;
+    float abnormalD = abs(tempDiff) - normal;
     //  Serial.print(abs(tempDiff)); Serial.print("-");Serial.println(normalD[GetMonthFromIndex(currentDay) - 1]);
-    flickerChance = max(mapf2i(flickerChance, 0, maxDiff - normal, 0, 1000), 0);
+    flickerChance = max(mapf2i(abnormalD, 0, maxDiff - normal, 0, 1000), 0);
 
     Serial.println(String("flicker chance: ") + flickerChance);
 
     //short intensity = GetIntensityFromPoti();
 
-    int curHue, curSat;
+    //    int curHue, curSat;
 
-    if (intensity == 0)
-    {
-      curHue = HUE_GREY;
-    }
-    else if (intensity < 0)
-    {
-      curHue = HUE_BLUE;
-    }
-    else
-    {
-      curHue = HUE_RED;
-    }
+    //    curSat = (intensity == 0) ? 0 : (int)((abs(intensity) / (float)INTENSITY_MAX) * 55) + 200;
 
-    curSat = (intensity == 0) ? 0 : (int)((abs(intensity) / (float)INTENSITY_MAX) * 55) + 200;
-
-    mixLedArray();
+    mixLedArrayEven();
+    //    mixLedDirection();
 
     //fillWhite(intensity);
-    if (tempDiff > 0) mixInHeat(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
-    else mixInCold(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
+    if (tempDiff > 0) {
+      Serial.println("*mixing in hot pixels");
+      mixInHeat(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
+    }
+    else {
+      Serial.println("*mixing in cold pixels");
+      mixInCold(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
+    }
 
     //UpdateLEDs(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, intensity, curHue, curSat, stripN1);
     //UpdateLEDs(true, NUMPIXELS_DOTSTAR1, LEDFRINGE_DOTSTAR1, intensity, curHue, curSat, stripD1, stripN1);
@@ -184,10 +171,13 @@ void loop()
     //EncodeDate();
   }
 
+  //  moveLedArray();
+  //  if (tempDiff > 0) mixInHeat(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
+  //  else mixInCold(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
 
   if (ledsOn) { // if leds are on check if flickering should be activated
     // the higher intensity the higher the chance of flicker
-    if (random(5000) < flickerChance) { // max chance = 1000 in 5000 aka every 5th loop
+    if (random(300000) < flickerChance) { // max chance = 1000 in 5000 aka every 5th loop
       flickerStart = millis();
       turnOff();
       ledsOn = false;
@@ -195,7 +185,7 @@ void loop()
       int maxFlicker = map(flickerChance, 0, 1000, MAX_FLICKER_MIN, MAX_FLICKER_MAX); // define max possible flicker time
       flickerTime = random(minFlicker, maxFlicker); // set random flicker time
 #ifdef DEBUG
-      Serial.println("flick on");
+      Serial.println(String("flick on for: ") + flickerTime);
 #endif
     }
   } else { // if leds are off, check when to turn on again
@@ -205,16 +195,13 @@ void loop()
       ledsOn = true;
       if (tempDiff > 0) mixInHeat(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
       else mixInCold(NUMPIXELS_NEOPIX1, LEDFRINGE_NEOPIX1, ledMix);
-#ifdef DEBUG
-      Serial.println("flick off");
-#endif
     }
   }
 
 
   tDay = tDay + LOOP_CLOCK;
 
-  delay(LOOP_CLOCK);
+  // delay(LOOP_CLOCK);
 }
 
 float GetTempDifference(unsigned short index)
