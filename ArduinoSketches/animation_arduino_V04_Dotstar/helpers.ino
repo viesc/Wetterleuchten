@@ -1,9 +1,13 @@
 float findMaxDiff() {
   float maxD = 0;
+  float maxIndex;
   for (int i = 0; i < TOTAL_DAYS; i++)  {
     float diff = abs(pgm_read_float(&diffT[i]));
     maxD = max(maxD, diff);
+    if (maxD == diff) maxIndex = i;
   }
+  Serial.println(String("Max temperature deviation in Celsius: ") + maxD);
+  Serial.println(String("On ") +GetDayFromIndex(maxIndex) + String(".") + GetMonthFromIndex(maxIndex) + String(". / Index ") + maxIndex);
   return maxD;
 }
 
