@@ -1,7 +1,7 @@
 #include <Adafruit_DotStar.h>
 #include <avr/pgmspace.h>
 
-//#define DEBUG
+//#define DEBUG  // uncomment for more serial outputs
 
 // GENERAL SETTINGS
 #define TOTAL_DAYS 365
@@ -11,50 +11,48 @@
 #define CLOCKPIN 5
 #define NUMPIXELS_DOTSTAR1 166  //144 per meter in this case
 #define LEDSTEP 2 // use only every x LED in strip. mostly because electricity usage would be too high otherwise
-#define LEDFRINGE_DOTSTAR1 4  // LEDS to not activate at end and beginning of strip (not working currently!)
+#define LEDFRINGE 4  // LEDS to not activate at end and beginning of strip (not working currently!)
 
 
 
 
 // COLORS
-#define GREEN_BRIGHT 50 // control brightness of green leds (tend to be brighter thats why i lower their brightness)
+#define GREEN_BRIGHT 80 // control brightness of green leds (tend to be brighter thats why i lower their brightness)
+#define BLUE_BRIGHT 255 
+#define RED_BRIGHT 180 
+
 
 // TIME
-#define DURATION_DAY 9863  //516 //1233 //2465 //4931 // 9863 // how long each day will be displayed in milliseconds
+#define DURATION_DAY 2465  //516 //1233 //2465 //4931 // 9863 // how long each day will be displayed in milliseconds
 
 // FLICKER PARAMETERS
-
 #define INTENSITY_MAX 100 // intensity boundary
 #define CHANCEFLOOR 1000 // the lower the less likely to flicker
-// minimum or maximum flicker time in milliseconds for low and high intensity of flickering
-#define MIN_FLICKER_LOW 80
-#define MAX_FLICKER_LOW 20  // faster flickers when high intensity
-#define MIN_FLICKER_HIGH 200
-#define MAX_FLICKER_HIGH 1000 // but also slower flickers possible
-// this is how it works below, kinda quirky
-//int minFlicker = map(intensity, 0, INTENSITY_MAX, MIN_FLICKER_LOW, MAX_FLICKER_LOW); // define min possible flicker time
-//int maxFlicker = map(intensity, 0, INTENSITY_MAX, MIN_FLICKER_HIGH, MAX_FLICKER_HIGH); // define max possible flicker time
-//flickerTime = random(minFlicker, maxFlicker); // set random flicker time
-
+// minimum and maximum flicker time in milliseconds for low and high intensity of flickering
+#define LOW_FLICKER_MIN 60
+#define LOW_FLICKER_MAX 100
+#define HIGH_FLICKER_MIN 20  // faster flickers when high intensity
+#define HIGH_FLICKER_MAX 500 // but also longer flickers possible
 
 // Global values for animation
-int displayRainbow = false;
+int startDay = 0;  // day of the year to start loop
+int displayRainbow = false; // only use if you have enough amps available on powersupply!
 int intensity = 0; // global intensity variable
 int currentDay = -1;
-int startDay = 96;  // day of the year to start loop
-bool isOn = false;
 long tDay = 0; // timer for the day animations
 long dayStart = 0; // stores start time of day animation in millis
 float tempDiff = 0; // holds deviation temperature of day
 float maxDiff; // min & max of temperature deviation, gets calculated in setup
 float normal = 0; // +/- this amount counts as "normal" temperature
-// Flicker globals
-int flickerChance = 0;
-long flickerStart;
-int flickerTime;
-bool ledsOn = true;
-int mySeed = 255;
 int ledMix[NUMPIXELS_DOTSTAR1]; //stores which LEDs to color
+// Flicker globals
+boolean flickering = false;
+bool ledsOn = true;
+int flickerChance = 0;
+int minFlicker, maxFlicker;
+long flickerStart;
+int flickerTime, onTime, offTime;
+
 
 Adafruit_DotStar stripD1(NUMPIXELS_DOTSTAR1, DATAPIN_DOTSTAR1, CLOCKPIN, DOTSTAR_BGR);
 
@@ -87,8 +85,6 @@ void loop()
   //  randomSeed(analogRead(A0)); // change random based on
   //  if (currentDay + 1 == 0) testLED(NUMPIXELS_DOTSTAR1);
 
-  int ledFringe = LEDFRINGE_DOTSTAR1;
-
   // Rainbow animation (once per year)
   if (currentDay + 1 == 0) {
     if (displayRainbow) {
@@ -103,33 +99,32 @@ void loop()
 
   if (millis() - dayStart >= DURATION_DAY || currentDay < 0)
   {
-    //mySeed = random(1024);
-
-    //    tDay = 0;
-    dayStart = millis();
     // Modulo operator makes value of currentDay stay bewtween 0 and TOTAL_DAYS
     // This actually generates the loop through days of the year!
-    currentDay = (currentDay + 1) % TOTAL_DAYS;
+    currentDay = (currentDay + 1) % TOTAL_DAYS; // step one day further
+    dayStart = millis(); // a new day just started
     Serial.println();
-    Serial.println(String("current day: ") + currentDay + String(", ")
+
+    // calculate day parameters
+    Serial.println(String("Current day: ") + currentDay + String(", ")
                    + GetDayFromIndex(currentDay) + String(".") + GetMonthFromIndex(currentDay) + String("."));
-
-    tempDiff = GetTempDifference(currentDay);
-    Serial.println(String("current temp deviation: ") + tempDiff);
-    normal = normalD[GetMonthFromIndex(currentDay) - 1] * 0.8;
-    Serial.println(String("normal deviation: ") + normal);
-
-    intensity = GetIntensityFromDifference(tempDiff);
-    Serial.println(String("current intensity: ") + intensity);
+    tempDiff = GetTempDifference(currentDay); // Get deviation from average of day
+    Serial.println(String("Current temp deviation: ") + tempDiff);
+    normal = normalD[GetMonthFromIndex(currentDay) - 1] * 0.8; // Get normal deviation for month
+    Serial.println(String("Cormal deviation: ") + normal);
+    intensity = GetIntensityFromDifference(tempDiff); // Determine flicker intensity
+    Serial.println(String("** Current INTENSITY: ") + intensity);
+    // calculate flicker times
+    minFlicker = map(intensity, 0, INTENSITY_MAX, LOW_FLICKER_MIN, HIGH_FLICKER_MIN); // define min possible flicker time
+    maxFlicker = map(intensity, 0, INTENSITY_MAX, LOW_FLICKER_MAX, HIGH_FLICKER_MAX); // define max possible flicker time
+    Serial.println(String("min, max flicker time: ") + minFlicker + ", " + maxFlicker);
 
     // subtract normal deviation from daily deviation, only start flickering when too warm or cold for season
-    float abnormalD = abs(tempDiff) - normal;
-    //  Serial.print(abs(tempDiff)); Serial.print("-");Serial.println(normalD[GetMonthFromIndex(currentDay) - 1]);
-    flickerChance = max(mapf2i(abnormalD, 0, maxDiff - normal, 0, CHANCEFLOOR), 0);
+    float abnormalD = abs(tempDiff) - normal; // How abnormal is deviation?
+    flickerChance = max(mapf2i(abnormalD, 0, maxDiff - normal, 0, CHANCEFLOOR), 0); // Determine chance of flicker
+    Serial.println(String("** FLICKER CHANCE: ") + flickerChance);
 
-    Serial.println(String("flicker chance: ") + flickerChance);
-
-    mixLedArrayEven(ledFringe);
+    mixLedArrayEven(LEDFRINGE); // distriutes temperature pixels
 
     if (tempDiff > 0) {
       Serial.println("displaying *hot* pixels");
@@ -139,41 +134,30 @@ void loop()
       Serial.println("displaying *cold* pixels");
       displayTemperature(0);
     }
-  } // else if (millis()%1000 == 0) Serial.print(".");
 
-  if (ledsOn && millis() - flickerStart > flickerTime/2) { // if leds and rest of flickertime has passed: check if flickering should be activated
-    if (random(300000) < flickerChance) {
-      flickerStart = millis();
-      turnOff();
-      ledsOn = false;
-      int minFlicker = map(intensity, 0, INTENSITY_MAX, MIN_FLICKER_LOW, MAX_FLICKER_LOW); // define min possible flicker time
-      int maxFlicker = map(intensity, 0, INTENSITY_MAX, MIN_FLICKER_HIGH, MAX_FLICKER_HIGH); // define max possible flicker time
-      flickerTime = random(minFlicker, maxFlicker); // set random flicker time
-      Serial.println(String("min, max flicker time: ") + minFlicker + ", " + maxFlicker);
-      Serial.println(String("flick on for: ") + flickerTime);
-    }
-  } else { // if leds are off, check when to turn on again
-    if (millis() - flickerStart > flickerTime/2)   // current ms - start ms = time passed, check if time passed is > flickerTime/2
-    {
-      ledsOn = true;
-      if (tempDiff > 0) displayTemperature(1);
-      else displayTemperature(0);
-    }
   }
-  //  tDay = tDay + LOOP_CLOCK;
-  // delay(LOOP_CLOCK);
-}
 
-float GetTempDifference(unsigned short index)
-{
-  float value = pgm_read_float_near( diffT + index );
-  //  Serial.println(value);
-  return value;
-}
+  // FLICKERING
+  if (!flickering) { // not flickering
+    if (random(300000) < flickerChance) { // start flicker probability
+      flickerTime = random(minFlicker, maxFlicker); // set random flicker time
+      byte flickerRatio = random(20, 80);
+      offTime = (flickerTime * flickerRatio) / 100; // distribute tot flickerTime between onTime and offTime
+      onTime = flickerTime - offTime;
+#ifdef DEBUG
+      Serial.println(String("flick for: ") + flickerTime);
+#endif DEBUG
+      // turn off leds and start flicker
+      ledsOff();
+      flickerStart = millis();
+      flickering = true;
+    }
+  } else if (flickering) {
+    if (!ledsOn && millis() - flickerStart > offTime) { // Turn leds on if enough time passed
+      ledsOn = true;
+      if (tempDiff > 0) displayTemperature(1); // hot
+      else displayTemperature(0); // cold
+    } else if (ledsOn && millis() - flickerStart > (onTime + offTime)) flickering = false; // End flicker if enough time has passed
+  }
 
-
-int GetIntensityFromDifference (float difference)
-{
-  intensity = mapf2i(abs(difference), 0, maxDiff, 0, INTENSITY_MAX);
-  return intensity;
 }

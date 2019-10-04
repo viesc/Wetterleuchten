@@ -44,8 +44,8 @@ void displayTemperature(bool hotOrCold) {
 #ifdef DEBUG
       Serial.print(1);
 #endif
-      if (hotOrCold == 1) stripD1.setPixelColor(i, stripD1.Color(255, 0, 0)); // set red pixel
-      else stripD1.setPixelColor(i, stripD1.Color(0, 255, 0)); // set blue pixel
+      if (hotOrCold == 1) stripD1.setPixelColor(i, stripD1.Color(RED_BRIGHT, 0, 0)); // set red pixel
+      else stripD1.setPixelColor(i, stripD1.Color(0, 0, BLUE_BRIGHT)); // set blue pixel
     }
     else if (ledMix[i] == 0) {
 #ifdef DEBUG
@@ -63,9 +63,10 @@ void displayTemperature(bool hotOrCold) {
   stripD1.show();
 }
 
-void turnOff() {
+void ledsOff() {
   stripD1.fill(stripD1.Color(0, 0, 0));
   stripD1.show();
+  ledsOn = false;
   //Serial.println("*lights off");
 }
 

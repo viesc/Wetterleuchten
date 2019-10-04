@@ -20,6 +20,19 @@ float findMinDiff() {
   return minD;
 }
 
+float GetTempDifference(unsigned short index)
+{
+  float value = pgm_read_float_near( diffT + index );
+  //  Serial.println(value);
+  return value;
+}
+
+int GetIntensityFromDifference (float difference)
+{
+  intensity = mapf2i(abs(difference), 0, maxDiff, 0, INTENSITY_MAX);
+  return intensity;
+}
+
 // classic "map", but takes float values and outputs integer
 int mapf2i(float x, float in_min, float in_max, float out_min, float out_max)
 {
