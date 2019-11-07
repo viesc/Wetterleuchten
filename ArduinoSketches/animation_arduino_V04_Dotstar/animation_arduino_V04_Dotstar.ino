@@ -23,7 +23,7 @@
 
 
 // TIME
-#define DURATION_DAY 2465  //516 //1233 //2465 //4931 // 9863 // how long each day will be displayed in milliseconds
+#define DURATION_DAY 9863  //516 //1233 //2465 //4931 // 9863 // how long each day will be displayed in milliseconds
 
 // FLICKER PARAMETERS
 #define INTENSITY_MAX 100 // intensity boundary
@@ -139,7 +139,7 @@ void loop()
 
   // FLICKERING
   if (!flickering) { // not flickering
-    if (random(300000) < flickerChance) { // start flicker probability
+    if (random(500000) < flickerChance) { // start flicker probability
       flickerTime = random(minFlicker, maxFlicker); // set random flicker time
       byte flickerRatio = random(20, 80);
       offTime = (flickerTime * flickerRatio) / 100; // distribute tot flickerTime between onTime and offTime
