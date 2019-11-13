@@ -99,7 +99,7 @@ void loop()
 
   if (millis() - dayStart >= DURATION_DAY || currentDay < 0)
   {
-    // Modulo operator makes value of currentDay stay bewtween 0 and TOTAL_DAYS
+    // The modulo operator (%) makes value of currentDay stay bewtween 0 and TOTAL_DAYS
     // This actually generates the loop through days of the year!
     currentDay = (currentDay + 1) % TOTAL_DAYS; // step one day further
     dayStart = millis(); // a new day just started
@@ -142,7 +142,7 @@ void loop()
     if (random(500000) < flickerChance) { // start flicker probability
       flickerTime = random(minFlicker, maxFlicker); // set random flicker time
       byte flickerRatio = random(20, 80);
-      offTime = (flickerTime * flickerRatio) / 100; // distribute tot flickerTime between onTime and offTime
+      offTime = (flickerTime * flickerRatio) / 100; // distribute total flickerTime between onTime and offTime
       onTime = flickerTime - offTime;
 #ifdef DEBUG
       Serial.println(String("flick for: ") + flickerTime);
